@@ -9,7 +9,7 @@ package cc.hayama.purity.views {
 	import cc.hayama.purity.ViewType;
 	import cc.hayama.utils.ObjectUtil;
 	
-	import feathers.core.FeathersControl;
+	import feathers.core.PopUpManager;
 	
 	import org.puremvc.as3.patterns.mediator.Mediator;
 	
@@ -23,7 +23,7 @@ package cc.hayama.purity.views {
 
 		public function ViewMediator(mediatorName:String = null, viewComponent:Object = null) {
 			super(mediatorName, viewComponent);
-			console = new ConsoleChannel(mediatorName);
+			console = new ConsoleChannel(mediatorName + " mediator");
 		}
 
 		//--------------------------------------
@@ -44,24 +44,9 @@ package cc.hayama.purity.views {
 
 		private var _isDefault:Boolean;
 
-		private var _asControl:FeathersControl;
-
 		//--------------------------------------
 		// Getters / setters 
 		//--------------------------------------
-
-		public function get asControl():FeathersControl {
-			return _asControl;
-		}
-
-		public function set asControl(value:FeathersControl):void {
-			if (asControl == value || value == null) {
-				return;
-			}
-
-			_asControl = value;
-			container.addChild(asControl);
-		}
 
 		public function get container():Sprite { return viewComponent as Sprite; }
 
@@ -71,6 +56,14 @@ package cc.hayama.purity.views {
 
 		public function set data(value:Object):void {
 			_data = value;
+			
+			for(var p:String in components) {
+				if(!data) {
+					components[p].setValue(null);
+				}else if(p in data) {
+					components[p].setValue(data[p]);
+				}
+			}
 		}
 
 		public function get index():int {
@@ -117,6 +110,8 @@ package cc.hayama.purity.views {
 				} else if (drawerDir == "right") {
 					PurityApp.drawers.toggleRightDrawer();
 				}
+			}else if(type == ViewType.POPUP) {
+				PopUpManager.addPopUp(container);
 			}
 		}
 
@@ -136,6 +131,8 @@ package cc.hayama.purity.views {
 				} else if (drawerDir == "right") {
 					PurityApp.drawers.toggleRightDrawer();
 				}
+			}else if(type == ViewType.POPUP) {
+				PopUpManager.removePopUp(container);
 			}
 		}
 
@@ -150,11 +147,7 @@ package cc.hayama.purity.views {
 			}
 
 			components[name] = component;
-			if(asControl) {
-				asControl.addChild(component.control);
-			}else {
-				container.addChild(component.control);
-			}
+			container.addChild(component.control);
 		}
 
 		public function call(method:String, ... args):void {
@@ -179,7 +172,7 @@ package cc.hayama.purity.views {
 		}
 
 		public function init():void {
-			//Override in subclasses
+			console.info("init");
 		}
 
 		public function dispose():void {

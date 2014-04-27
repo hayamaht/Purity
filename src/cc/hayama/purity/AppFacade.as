@@ -1,9 +1,7 @@
 package cc.hayama.purity {
 
 	import com.junkbyte.console.Cc;
-	
 	import flash.utils.getDefinitionByName;
-	
 	import cc.hayama.purity.controllers.AppCommand;
 	import cc.hayama.purity.factories.MediatorFactory;
 	import cc.hayama.purity.factories.ProxyFactory;
@@ -12,13 +10,8 @@ package cc.hayama.purity {
 	import cc.hayama.purity.vo.ControllerConfigVO;
 	import cc.hayama.purity.vo.ModelConfigVO;
 	import cc.hayama.purity.vo.ViewConfigVO;
-	
-	import feathers.controls.Drawers;
-	import feathers.controls.ScreenNavigator;
 	import feathers.controls.ScreenNavigatorItem;
-	
 	import org.puremvc.as3.patterns.facade.Facade;
-	
 	import starling.display.DisplayObject;
 
 	public class AppFacade extends Facade {
@@ -115,21 +108,24 @@ package cc.hayama.purity {
 				mediator = MediatorFactory.create(vo);
 				d = mediator.getViewComponent() as DisplayObject;
 				d.name = vo.name;
-				
-				if(vo.width) {
+
+				if (vo.width) {
 					d.width = vo.width;
 				}
-				
-				if(vo.height) {
+
+				if (vo.height) {
 					d.height = vo.height;
 				}
 
-				if(mediator.isDefault && defaultMediator == null) {
+				if (mediator.isDefault && defaultMediator == null) {
 					defaultMediator = mediator;
 				}
-				
+
 				if (mediator.type == ViewType.NAV) {
 					PurityApp.nav.addScreen(vo.name, new ScreenNavigatorItem(d));
+					if(defaultMediator == null) {
+						defaultMediator = mediator;
+					}
 				} else if (mediator.type == ViewType.DRAWER) {
 					if (mediator.drawerDir == "top") {
 						PurityApp.drawers.topDrawer = d;
@@ -140,14 +136,14 @@ package cc.hayama.purity {
 					} else if (mediator.drawerDir == "right") {
 						PurityApp.drawers.rightDrawer = d;
 					}
-				}else if(mediator.type == ViewType.NORMAL) {
+				} else if (mediator.type == ViewType.NORMAL) {
 					PurityApp.addView(d);
 				}
 
 				registerMediator(mediator);
 			}
-			
-			if(defaultMediator) {
+
+			if (defaultMediator) {
 				PurityApp.nav.showScreen(defaultMediator.getMediatorName());
 			}
 		}

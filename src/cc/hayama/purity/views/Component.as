@@ -4,6 +4,9 @@ package cc.hayama.purity.views {
 	import flash.utils.getDefinitionByName;
 	import flash.utils.getQualifiedClassName;
 	
+	import cc.hayama.purity.AppFacade;
+	import cc.hayama.purity.models.ModelProxy;
+	
 	import feathers.controls.Button;
 	import feathers.controls.ButtonGroup;
 	import feathers.controls.Check;
@@ -52,7 +55,7 @@ package cc.hayama.purity.views {
 		//--------------------------------------
 
 		protected var _control:FeathersControl;
-		
+
 		protected var controlClass:Class;
 
 		//--------------------------------------
@@ -90,7 +93,7 @@ package cc.hayama.purity.views {
 				return ButtonGroup(control).dataProvider;
 			} else if (control is List) {
 				return List(control).dataProvider;
-			}else if(componentValueGetters[controlClass]) {
+			} else if (componentValueGetters[controlClass]) {
 				return componentValueGetters[controlClass]();
 			}
 
@@ -99,36 +102,44 @@ package cc.hayama.purity.views {
 
 		public function setValue(value:*):void {
 			if (control is Button) {
-				Button(control).label = value;
+				Button(control).label = (value != null) ? value : "";
 			} else if (control is Check) {
 				Check(control).isSelected = value;
 			} else if (control is ImageLoader) {
 				ImageLoader(control).source = value;
 			} else if (control is Label) {
-				Label(control).text = value;
+				Label(control).text = (value != null) ? value : "";
 			} else if (control is NumericStepper) {
-				NumericStepper(control).value = value;
+				NumericStepper(control).value = (value != null) ? value : 0;
 			} else if (control is ProgressBar) {
-				ProgressBar(control).value = value;
+				ProgressBar(control).value = (value != null) ? value : 0;
 			} else if (control is Slider) {
-				Slider(control).value = value;
+				Slider(control).value = (value != null) ? value : 0;
 			} else if (control is TextArea) {
-				TextArea(control).text = value;
+				TextArea(control).text = (value != null) ? value : "";
 			} else if (control is TextInput) {
-				TextInput(control).text = value;
+				TextInput(control).text = (value != null) ? value : "";
 			} else if (control is ToggleSwitch) {
 				ToggleSwitch(control).isSelected = value;
 			} else if (control is ButtonGroup) {
-				ButtonGroup(control).dataProvider = (value is ListCollection)
-					? value
-					: new ListCollection(value);
+				ButtonGroup(control).dataProvider = (value != null)
+					? ((value is ListCollection) ? value : new ListCollection(value))
+					: null;
 			} else if (control is List) {
-				List(control).dataProvider = (value is ListCollection)
-					? value
-					: new ListCollection(value);
-			}else if(componentValueSetters[controlClass]){
-				componentValueSetters[controlClass](value);	
+				List(control).dataProvider = (value != null)
+					? ((value is ListCollection) ? value : new ListCollection(value))
+					: null;
+			} else if (componentValueSetters[controlClass]) {
+				componentValueSetters[controlClass](value);
 			}
+		}
+
+		public function bindWithProxy(name:String):void {
+			var p:ModelProxy = AppFacade.instance.retrieveProxy(name) as ModelProxy;
+			var component:Component = this;
+			p.onChanged.add(function(data:Object):void {
+				component.setValue(data);
+			});
 		}
 	}
 }

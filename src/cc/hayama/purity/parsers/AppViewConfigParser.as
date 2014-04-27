@@ -2,7 +2,6 @@ package cc.hayama.purity.parsers {
 
 	import cc.hayama.purity.PurityApp;
 	import cc.hayama.purity.ViewType;
-	import cc.hayama.purity.vo.ComponentConfigVO;
 	import cc.hayama.purity.vo.RouteVO;
 	import cc.hayama.purity.vo.ViewConfigVO;
 	import cc.hayama.utils.StringUtil;
@@ -17,104 +16,126 @@ package cc.hayama.purity.parsers {
 			super.parse(data);
 
 			var config:Vector.<ViewConfigVO> = new Vector.<ViewConfigVO>();
-			_filepathes = [];
+
+			var isArray:Boolean = rawData is Array;
+			var vo:ViewConfigVO;
 
 			for (var p:String in rawData) {
-				if (validateName(p)) {
-					var obj:Object = rawData[p];
-					var vo:ViewConfigVO = new ViewConfigVO();
-					var path:String = obj.path;
-					var typeArr:Array;
+				var obj:Object = rawData[p];
 
-					vo.name = p;
-					vo.type = (obj.type) ? obj.type : ViewType.NORMAL;
-					typeArr = vo.type.split(":");
-					
-					if(vo.type.indexOf(ViewType.DRAWER) >= 0) {
-						vo.type = typeArr[0];
-						vo.drawerDir = typeArr[1];
-					}else if(vo.type.indexOf(ViewType.NAV) >= 0) {
-						vo.type = typeArr[0];
-						if(typeArr.length > 1) {
-							vo.navScreen = typeArr[1];
-						}else {
-							vo.navScreen = "screen";
-						}
-					}
-					
-					vo.path = path;
-					vo.className = (obj.className)
-						? obj.className
-						: PurityApp.packageName + ".views." + StringUtil.captitalizeFirstLetter(p + "Mediator");
-					vo.isDefault = (vo.type == ViewType.NAV) ? Boolean(obj["default"]) : false;
-					vo.index = obj.index;
-					vo.assetClassName = obj.assetClassName;
-					vo.width = obj.width;
-					vo.height = obj.height;
-
-					if (obj.asControl) {
-						vo.asControl = (obj.asControl is String)
-							? new ComponentConfigVO({ type: obj.asControl })
-							: new ComponentConfigVO(obj.asControl);
-
-						if (vo.asControl.footer) {
-							vo.asControl.footer = parseComponents(vo.asControl.footer, vo.name);
-						}
-
-						vo.asControl.mediatorName = vo.name;
-						vo.asControl.name = "asControl";
-					}
-
-					if (obj.shows) {
-						var sa:Array = String(obj.shows).split(",");
-						vo.shows = new Vector.<String>();
-						for each (var ss:String in sa) {
-							vo.shows.push(ss + ".show");
-						}
-					}
-
-					if (obj.hides) {
-						var ha:Array = String(obj.hides).split(",");
-						vo.hides = new Vector.<String>();
-						for each (var hs:String in ha) {
-							vo.hides.push(hs + ".hide");
-						}
-					}
-
-					if (obj.components) {
-						vo.components = parseComponents(obj.components, vo.name);
-					}
-
-					if (vo.path && vo.path.length > 0 && filepathes.indexOf(vo.path) < 0) {
-						filepathes.push(vo.path);
-					}
-
-					config.push(vo);
+				if (!(!isArray && validateName(p)) && !(isArray && validateName(obj.name))) {
+					continue;
 				}
+
+				vo = parseViewConfig(obj, (isArray) ? null : p, (isArray) ? int(p) : -1);
+
+				config.push(vo);
+
 			}
 
 			config.sort(function(a:ViewConfigVO, b:ViewConfigVO):Number {
 				return (a.index > b.index) ? 1 :
 					(a.index < b.index) ? -1 : 0;
 			});
-			
+
 			PurityApp.viewConfig = config;
 		}
 
-		private function parseComponents(obj:Object, mediatorName:String):Vector.<ComponentConfigVO> {
+		private function parseViewConfig(data:Object, name:String = null, index:int = -1):ViewConfigVO {
+			var vo:ViewConfigVO = new ViewConfigVO(data);
+			
+			parseType(vo, data.type);
+
+			vo.name = (name) ? name : data.name;
+			vo.className = (data.className)
+				? data.className
+				: PurityApp.packageName + ".views." + StringUtil.captitalizeFirstLetter(vo.name + "Mediator");
+			vo.isDefault = (vo.type == ViewType.NAV) ? Boolean(data["default"]) : false;
+			vo.index = (index >= 0) ? index : int(data.index);
+			
+			if(vo.container == "panel" && (vo.header || vo.footer)) {
+				if(vo.header) {
+					vo.header = parseViewConfig(vo.header);
+				}
+				
+				if(vo.footer) {
+					vo.footer = parseViewConfig(vo.footer);
+				}
+			}
+
+			if (data.background) {
+				if (data.background is String) {
+					vo.background = uint("0x" + String(data.background).substr(1));
+				} else if (data.background is Object) {
+
+				}
+			}
+
+			if (data.signals) {
+				vo.signals = {};
+				for (var sp:String in data.signals) {
+					vo.signals[sp] = createRoute(data.signals[sp], null, vo.name);
+				}
+			}
+
+			if (data.shows) {
+				var sa:Array = String(data.shows).split(",");
+				vo.shows = new Vector.<String>();
+				for each (var ss:String in sa) {
+					vo.shows.push(ss + ".show");
+				}
+			}
+
+			if (data.hides) {
+				var ha:Array = String(data.hides).split(",");
+				vo.hides = new Vector.<String>();
+				for each (var hs:String in ha) {
+					vo.hides.push(hs + ".hide");
+				}
+			}
+
+			if (data.children) {
+				vo.children = parseChildren(data.children, vo.name, vo.layout);
+			}
+
+			return vo;
+		}
+
+		private function parseType(vo:ViewConfigVO, type:String):void {
+			var typeArr:Array;
+
+			vo.type = (type) ? type : ViewType.NORMAL;
+			typeArr = vo.type.split(":");
+
+			if (vo.type.indexOf(ViewType.DRAWER) >= 0) {
+				vo.type = typeArr[0];
+				vo.drawerDir = typeArr[1];
+				vo.container = "scrollContainer";
+			} else if (vo.type.indexOf(ViewType.NAV) >= 0) {
+				vo.type = typeArr[0];
+				vo.container = (typeArr.length > 1) ? typeArr[1] : "screen";
+			} else if (vo.type.indexOf(ViewType.POPUP) >= 0) {
+				vo.type = typeArr[0];
+				vo.container = (typeArr.length > 1) ? typeArr[1] : "sprite";
+			}
+		}
+
+		private function parseChildren(obj:Object, mediatorName:String, layoutData:String = null):Vector.<ViewConfigVO> {
 			var actions:Array = [
 				"click", "over", "out", "up",
 				"down", "doubleclick", "enter",
 				"change"
 				];
-			var vec:Vector.<ComponentConfigVO> = new Vector.<ComponentConfigVO>();
-			var parser:Function = function(data:Object, name:String = null):ComponentConfigVO {
-				var item:ComponentConfigVO = new ComponentConfigVO(data);
+			var vec:Vector.<ViewConfigVO> = new Vector.<ViewConfigVO>();
+			var parser:Function = function(data:Object, name:String = null):ViewConfigVO {
+				var item:ViewConfigVO = new ViewConfigVO(data);
 				item.mediatorName = mediatorName;
+				item.layoutData = layoutData;
 				item.name = (name) ? name : data.name;
 
-				if (item.item && item.item.components) {
-					item.item.components = parseComponents(item.item.components, mediatorName);
+				if (item.item) {
+					item.item.name = mediatorName;
+					item.item = parseViewConfig(item.item);
 				}
 
 				for each (var ac:String in actions) {
@@ -143,6 +164,10 @@ package cc.hayama.purity.parsers {
 		}
 
 		private function createRoute(str:String, componentName:String, mediatorName:String):Array {
+			if(!str) {
+				return null;
+			}
+			
 			var a:Array = str.split(";");
 			var routes:Array = [];
 

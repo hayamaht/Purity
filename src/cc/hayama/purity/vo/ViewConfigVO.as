@@ -1,6 +1,6 @@
 package cc.hayama.purity.vo {
 
-	public class ViewConfigVO extends ValueObject {
+	public dynamic class ViewConfigVO extends ValueObject {
 
 		//--------------------------------------
 		//   Constructor 
@@ -17,12 +17,16 @@ package cc.hayama.purity.vo {
 		public var type:String;
 
 		public var className:String;
+		
+		public var container:String;
+		
+		public var containerClassName:String;
+		
+		public var parent:String;
 
-		public var path:String;
+		public var children:Vector.<ViewConfigVO>;
 
-		public var assetClassName:String;
-
-		public var components:Vector.<ComponentConfigVO>;
+		public var background:Object;
 
 		public var isDefault:Boolean;
 
@@ -32,14 +36,20 @@ package cc.hayama.purity.vo {
 
 		public var hides:Vector.<String>;
 
-		public var asControl:ComponentConfigVO;
-		
 		public var drawerDir:String;
-		
-		public var navScreen:String;
-		
+
 		public var width:Number;
-		
+
 		public var height:Number;
+
+		public var signals:Object;
+
+		public var events:Object;
+
+		public var layout:String;
+		
+		public var layoutData:String;
+		
+		public var dataSource:String;
 	}
 }

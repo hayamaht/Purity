@@ -1,26 +1,22 @@
 package cc.hayama.purity {
 
 	import com.junkbyte.console.Cc;
-	
 	import flash.display.Sprite;
 	import flash.display.StageAlign;
 	import flash.display.StageScaleMode;
 	import flash.events.Event;
 	import flash.geom.Rectangle;
 	import flash.system.Capabilities;
-	
 	import cc.hayama.purity.factories.ComponentFactory;
 	import cc.hayama.purity.factories.ServiceFactory;
 	import cc.hayama.purity.managers.LoadManager;
 	import cc.hayama.purity.vo.ControllerConfigVO;
 	import cc.hayama.purity.vo.ModelConfigVO;
 	import cc.hayama.purity.vo.ViewConfigVO;
-	
 	import feathers.controls.Drawers;
 	import feathers.controls.ScreenNavigator;
 	import feathers.system.DeviceCapabilities;
 	import feathers.themes.MetalWorksMobileTheme;
-	
 	import starling.core.Starling;
 	import starling.display.DisplayObject;
 	import starling.events.Event;
@@ -179,6 +175,11 @@ package cc.hayama.purity {
 			container.addChild(drawers);
 			drawers.content = nav;
 			AppFacade.instance.startup();
+			handleAppReady();
+		}
+
+		protected function handleAppReady():void {
+			// Override in subclasses
 		}
 
 		protected function initSlashCommands():void {

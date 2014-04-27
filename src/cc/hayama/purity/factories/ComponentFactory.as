@@ -1,12 +1,15 @@
 package cc.hayama.purity.factories {
 
 	import flash.utils.Dictionary;
+	import flash.utils.getDefinitionByName;
 	
 	import cc.hayama.purity.AppFacade;
 	import cc.hayama.purity.AppLocale;
 	import cc.hayama.purity.ComponentType;
 	import cc.hayama.purity.PurityApp;
-	import cc.hayama.purity.vo.ComponentConfigVO;
+	import cc.hayama.purity.components.ListItem;
+	import cc.hayama.purity.views.Component;
+	import cc.hayama.purity.vo.ViewConfigVO;
 	
 	import feathers.controls.Button;
 	import feathers.controls.ButtonGroup;
@@ -17,17 +20,28 @@ package cc.hayama.purity.factories {
 	import feathers.controls.LayoutGroup;
 	import feathers.controls.List;
 	import feathers.controls.NumericStepper;
+	import feathers.controls.Panel;
 	import feathers.controls.ProgressBar;
 	import feathers.controls.Radio;
+	import feathers.controls.Scroller;
 	import feathers.controls.Slider;
 	import feathers.controls.TextArea;
 	import feathers.controls.TextInput;
 	import feathers.controls.ToggleSwitch;
+	import feathers.controls.renderers.IListItemRenderer;
 	import feathers.core.FeathersControl;
 	import feathers.data.ListCollection;
 	import feathers.events.FeathersEventType;
+	import feathers.layout.AnchorLayout;
+	import feathers.layout.AnchorLayoutData;
+	import feathers.layout.HorizontalLayout;
+	import feathers.layout.ILayout;
+	import feathers.layout.TiledColumnsLayout;
+	import feathers.layout.TiledRowsLayout;
+	import feathers.layout.VerticalLayout;
 	
 	import starling.display.DisplayObject;
+	import starling.display.Quad;
 	import starling.events.Event;
 
 	public class ComponentFactory {
@@ -51,6 +65,7 @@ package cc.hayama.purity.factories {
 			register(ComponentType.LABEL, createLabel);
 			register(ComponentType.LIST, createList);
 			register(ComponentType.NUMERIC, createNumeric);
+			register(ComponentType.PANEL, createPanel);
 			register(ComponentType.PROGRESS_BAR, createProgressBar);
 			register(ComponentType.TEXT_AREA, createTextArea);
 			register(ComponentType.TEXT_INPUT, createTextInput);
@@ -60,8 +75,13 @@ package cc.hayama.purity.factories {
 			componentFactories[type] = factory;
 		}
 
-		public static function create(config:ComponentConfigVO):FeathersControl {
-			return componentFactories[config.type](config);
+		public static function create(config:ViewConfigVO):FeathersControl {
+			var c:FeathersControl = componentFactories[config.type](config);
+			c.name = config.name;
+			setSize(c, config.width, config.height);
+			setLayoutData(c, config);
+
+			return c;
 		}
 
 		public static function setSize(component:FeathersControl, width:Number, height:Number):void {
@@ -76,65 +96,46 @@ package cc.hayama.purity.factories {
 			component.validate();
 		}
 
-		public static function setPosition(component:FeathersControl, x:*, y:*):void {
-			if (!x && !y) {
+		public static function setLayoutData(component:FeathersControl, config:ViewConfigVO):void {
+			if (!config.layoutData) {
 				return;
 			}
 
-			var parser:Function = function(value:*):Number {
-				if (value is String) {
-					var v:Number = 0;
-					var matches:Array = String(value).match(/(\d+[+-])?{(center|middle|top|bottom|left|right)}([+-]\d+)?/);
-					if (matches && matches.length > 1) {
-						var d:Number = 0;
-						var ds:String = "";
-						var op:String = "";
-						var w:Number = PurityApp.width;
-						var h:Number = PurityApp.height;
+			if (config.layoutData == "anchor") {
+				var alyd:AnchorLayoutData = new AnchorLayoutData();
+				const keys:Array = [
+					"left", "right", "top", "bottom",
+					"verticalCenter", "horizontalCenter",
+					"percentWidth", "percentHeight"
+					];
+				const keysLen:int = keys.length;
 
-						v = (matches[2] == "top") ? 0 :
-							(matches[2] == "bottom") ? h - component.height :
-							(matches[2] == "left") ? 0 :
-							(matches[2] == "right") ? w - component.width :
-							(matches[2] == "center") ? (w - component.width) * 0.5 :
-							(matches[2] == "middle") ? (h - component.height) * 0.5 : 0;
-
-						if (matches[1] && matches[1].length > 0) {
-							ds = matches[1];
-							d = Number(ds.substring(0, ds.length - 1));
-							op = ds.substr(-1);
-							if (op == "-") {
-								v = d - v;
-							} else {
-								v = d + v;
-							}
-						} else if (matches[3] && matches[3].length > 0) {
-							ds = matches[3];
-							d = Number(ds.substring(1));
-							op = ds.substr(0, 1);
-							if (op == "-") {
-								v -= d;
-							} else {
-								v += d;
-							}
-						}
-
-						return v;
+				var key:String;
+				for (var i:int = 0; i < keysLen; ++i) {
+					key = keys[i];
+					if (config[key] != null) {
+						alyd[key] = config[key];
 					}
-
-					return value;
 				}
-			};
 
-			component.x = parser(x);
-			component.y = parser(y);
+				component.layoutData = alyd;
+			}
 		}
 
-		public static function createButton(config:ComponentConfigVO):Button {
-			var button:Button = new Button();
-			button.name = config.name;
+		public static function setupBackground(displayObj:*, background:Object, width:Number = NaN, height:Number = NaN):void {
+			if (background == null) {
+				return;
+			}
 
-			setSize(button, config.width, config.height);
+			if (background is uint) {
+				var w:Number = (!isNaN(width)) ? width : PurityApp.width;
+				var h:Number = (!isNaN(height)) ? height : PurityApp.height;
+				displayObj.backgroundSkin = new Quad(w, h, uint(background));
+			}
+		}
+
+		public static function createButton(config:ViewConfigVO):Button {
+			var button:Button = new Button();
 
 			if (config.label) {
 				button.label = config.label;
@@ -149,11 +150,8 @@ package cc.hayama.purity.factories {
 			return button;
 		}
 
-		public static function createButtonGroup(config:ComponentConfigVO):ButtonGroup {
+		public static function createButtonGroup(config:ViewConfigVO):ButtonGroup {
 			var buttonGroup:ButtonGroup = new ButtonGroup();
-			buttonGroup.name = config.name;
-
-			setSize(buttonGroup, config.width, config.height);
 
 			for each (var obj:Object in config.buttonData) {
 				obj.triggered = function(event:Event):void {
@@ -167,11 +165,8 @@ package cc.hayama.purity.factories {
 			return buttonGroup;
 		}
 
-		public static function createCheck(config:ComponentConfigVO):Check {
+		public static function createCheck(config:ViewConfigVO):Check {
 			var check:Check = new Check();
-			check.name = config.name;
-
-			setSize(check, config.width, config.height);
 
 			if (config.label) {
 				check.label = AppLocale.parse(config.label);
@@ -188,10 +183,10 @@ package cc.hayama.purity.factories {
 			return check;
 		}
 
-		public static function createHeader(config:ComponentConfigVO):Header {
+		public static function createHeader(config:ViewConfigVO):Header {
 			var createItems:Function = function(array:Array):Vector.<DisplayObject> {
 				var vec:Vector.<DisplayObject> = new Vector.<DisplayObject>();
-				for each (var vo:ComponentConfigVO in array) {
+				for each (var vo:ViewConfigVO in array) {
 					vec.push(create(vo));
 				}
 
@@ -199,8 +194,6 @@ package cc.hayama.purity.factories {
 			};
 
 			var header:Header = new Header();
-
-			setSize(header, config.width, config.height);
 
 			if (config.title) {
 				header.title = AppLocale.parse(config.title);
@@ -229,11 +222,8 @@ package cc.hayama.purity.factories {
 			return header;
 		}
 
-		public static function createImage(config:ComponentConfigVO):ImageLoader {
+		public static function createImage(config:ViewConfigVO):ImageLoader {
 			var imageLoader:ImageLoader  = new ImageLoader();
-			imageLoader.name = config.name;
-
-			setSize(imageLoader, config.width, config.height);
 
 			if (config.source) {
 				imageLoader.source = config.source;
@@ -248,9 +238,8 @@ package cc.hayama.purity.factories {
 			return imageLoader;
 		}
 
-		public static function createLabel(config:ComponentConfigVO):Label {
+		public static function createLabel(config:ViewConfigVO):Label {
 			var label:Label = new Label();
-			label.name = config.name;
 
 			setSize(label, config.width, config.height);
 
@@ -261,13 +250,8 @@ package cc.hayama.purity.factories {
 			return label;
 		}
 
-		public static function createLayoutGroup(config:ComponentConfigVO):LayoutGroup {
+		public static function createLayoutGroup(config:ViewConfigVO):LayoutGroup {
 			var layoutGroup:LayoutGroup = new LayoutGroup();
-			layoutGroup.name = config.name;
-
-			if (config.layout) {
-				layoutGroup.layout = LayoutFactory.create(config.layout);
-			}
 
 			if (config.items) {
 				for each (var item:DisplayObject in config.items) {
@@ -278,14 +262,31 @@ package cc.hayama.purity.factories {
 			return layoutGroup;
 		}
 
-		public static function createList(config:ComponentConfigVO):List {
+		public static function createList(config:ViewConfigVO):List {
 			var list:List = new List();
-			list.name = config.name;
 
-			setSize(list, config.width, config.height);
+			if (config.layout) {
+				list.layout = createLayout(config.layout);
+
+				if (list.layout is HorizontalLayout) {
+					list.horizontalScrollPolicy = Scroller.SCROLL_POLICY_AUTO;
+					list.verticalScrollPolicy = Scroller.SCROLL_POLICY_OFF;
+				} else if (list.layout is VerticalLayout) {
+					list.horizontalScrollPolicy = Scroller.SCROLL_POLICY_OFF;
+					list.verticalScrollPolicy = Scroller.SCROLL_POLICY_AUTO;
+				}
+			}
 
 			if (config.item) {
+				list.itemRendererFactory = function():IListItemRenderer {
+					return createListItem(config.item);
+				};
+			}
 
+			list.isSelectable = (config.selectable !== false);
+
+			if (config.selectIndex >= 0) {
+				list.selectedIndex = config.selectIndex;
 			}
 
 			if (config.change) {
@@ -297,11 +298,15 @@ package cc.hayama.purity.factories {
 			return list;
 		}
 
-		public static function createNumeric(config:ComponentConfigVO):NumericStepper {
-			var numeric:NumericStepper = new NumericStepper();
-			numeric.name = config.name;
+		public static function createListItem(config:ViewConfigVO):ListItem {
+			var item:ListItem = new ListItem();
+			item.config = config;
 
-			setSize(numeric, config.width, config.height);
+			return item;
+		}
+
+		public static function createNumeric(config:ViewConfigVO):NumericStepper {
+			var numeric:NumericStepper = new NumericStepper();
 
 			numeric.maximum = (config.max) ? Number(config.max) : 100;
 			numeric.minimum = (config.min) ? Number(config.min) : 0;
@@ -316,8 +321,22 @@ package cc.hayama.purity.factories {
 
 			return numeric;
 		}
+		
+		public static function createPanel(config:ViewConfigVO):Panel {
+			var panel:Panel = new Panel();
+			
+			if(config.header) {
+				
+			}
+			
+			if(config.footer) {
+		
+			}
+			
+			return panel;
+		}
 
-		public static function createProgressBar(config:ComponentConfigVO):ProgressBar {
+		public static function createProgressBar(config:ViewConfigVO):ProgressBar {
 			var progressBar:ProgressBar = new ProgressBar();
 
 			progressBar.minimum = (config.min) ? Number(config.min) : 0;
@@ -328,22 +347,15 @@ package cc.hayama.purity.factories {
 			return progressBar;
 		}
 
-		public static function createRadio(config:ComponentConfigVO):Radio {
+		public static function createRadio(config:ViewConfigVO):Radio {
 			var radio:Radio = new Radio();
-			radio.name = config.name;
-
-			setSize(radio, config.width, config.height);
-
 			radio.label = (config.label) ? AppLocale.parse(config.label) : "";
 
 			return radio;
 		}
 
-		public static function createSlider(config:ComponentConfigVO):Slider {
+		public static function createSlider(config:ViewConfigVO):Slider {
 			var slider:Slider = new Slider();
-			slider.name = config.name;
-
-			setSize(slider, config.width, config.height);
 
 			slider.maximum = (config.max) ? Number(config.max) : 100;
 			slider.minimum = (config.min) ? Number(config.min) : 0;
@@ -362,7 +374,7 @@ package cc.hayama.purity.factories {
 			return slider;
 		}
 
-		public static function createTextArea(config:ComponentConfigVO):TextArea {
+		public static function createTextArea(config:ViewConfigVO):TextArea {
 			var textarea:TextArea = new TextArea();
 
 			textarea.text = (config.text) ? AppLocale.parse(config.text) : "";
@@ -397,11 +409,8 @@ package cc.hayama.purity.factories {
 			return textarea;
 		}
 
-		public static function createTextInput(config:ComponentConfigVO):TextInput {
+		public static function createTextInput(config:ViewConfigVO):TextInput {
 			var textinput:TextInput = new TextInput();
-			textinput.name = config.name;
-
-			setSize(textinput, config.width, config.height);
 
 			textinput.text = (config.text) ? AppLocale.parse(config.text) : "";
 			textinput.prompt = (config.prompt) ? AppLocale.parse(config.prompt) : "";
@@ -443,11 +452,8 @@ package cc.hayama.purity.factories {
 			return textinput;
 		}
 
-		public static function createToggle(config:ComponentConfigVO):ToggleSwitch {
+		public static function createToggle(config:ViewConfigVO):ToggleSwitch {
 			var toggle:ToggleSwitch = new ToggleSwitch();
-			toggle.name = config.name;
-
-			setSize(toggle, config.width, config.height);
 
 			toggle.isSelected = (config.selected === true);
 			toggle.showLabels = (config.showLabels !== false);
@@ -468,6 +474,30 @@ package cc.hayama.purity.factories {
 			}
 
 			return toggle;
+		}
+
+		public static function createLayout(config:Object):ILayout {
+			const factory:Function = function(type:String):ILayout {
+				return (type == "anchor") ? new AnchorLayout() :
+					(type == "horizontal") ? new HorizontalLayout() :
+					(type == "vertical") ? new VerticalLayout() :
+					(type == "tiledCol") ? new TiledColumnsLayout() :
+					(type == "tiledRow") ? new TiledRowsLayout() : null;
+			};
+
+			if (config is String) {
+				return factory(String(config));
+			}
+
+			var ly:ILayout = factory(config.type);
+
+			for (var p:String in config) {
+				if (p in ly) {
+					ly[p] = config[p];
+				}
+			}
+
+			return ly;
 		}
 	}
 }

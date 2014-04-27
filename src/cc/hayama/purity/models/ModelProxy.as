@@ -17,7 +17,7 @@ package cc.hayama.purity.models {
 
 		public function ModelProxy(proxyName:String = null, data:Object = null) {
 			super(proxyName, data);
-			console = new ConsoleChannel(proxyName);
+			console = new ConsoleChannel(proxyName + " proxy");
 		}
 
 		//--------------------------------------
@@ -77,10 +77,14 @@ package cc.hayama.purity.models {
 
 		override public function setData(data:Object):void {
 			super.setData(data);
+			console.log("setData():");
+			console.explode(data);
+			console.log("end of setData()");
 			onChanged.dispatch(data);
 		}
 
 		public function init():void {
+			console.info("init()");
 			service.init();
 
 			if (loadWhileInit) {
@@ -127,6 +131,15 @@ package cc.hayama.purity.models {
 			return vec;
 		}
 
+		public function findOne(params:Object):ValueObject {
+			var vec:Vector.<ValueObject> = find(params);
+			if (vec.length > 0) {
+				return vec[0];
+			}
+
+			return null;
+		}
+
 		public function addValue(params:Object):void {
 			if (!isGroupData) {
 				for (var p:String in params) {
@@ -167,6 +180,7 @@ package cc.hayama.purity.models {
 			try {
 				var f:Function = this[method] as Function;
 			} catch (err:Error) {
+				console.warn("call(): Error=" + err.message);
 				return;
 			}
 
@@ -213,6 +227,7 @@ package cc.hayama.purity.models {
 		}
 
 		protected function onLoad(data:Object):void {
+			console.info("onLoad");
 			setData(parse(data));
 		}
 

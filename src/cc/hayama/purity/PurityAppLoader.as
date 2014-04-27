@@ -23,7 +23,7 @@ package cc.hayama.purity {
 
 		public static function reload():void {
 			instance.removeChildren();
-			LoadManager.instance.clear();
+			LoadManager.clear();
 			instance.load();
 		}
 
@@ -37,10 +37,11 @@ package cc.hayama.purity {
 			this.mainFile = mainFile;
 			instance = this;
 
+			Cc.config.commandLineAllowed = true;
+			Cc.config.tracing = true;
 			Cc.startOnStage(this, "`");
 			initSlashCommands();
-			loadMain();
-
+			
 			load();
 		}
 
@@ -71,6 +72,7 @@ package cc.hayama.purity {
 
 			initLoadingScreen();
 			initLoadItems();
+			loadMain();
 
 			loadManager.start();
 		}

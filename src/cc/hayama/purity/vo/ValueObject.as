@@ -1,6 +1,9 @@
 package cc.hayama.purity.vo {
 
-	public class ValueObject {
+	import flash.utils.getDefinitionByName;
+	import flash.utils.getQualifiedClassName;
+
+	public dynamic class ValueObject {
 
 		//--------------------------------------
 		//   Constructor 
@@ -17,7 +20,7 @@ package cc.hayama.purity.vo {
 						this[param] = params[param];
 					}
 				} catch (e:Error) {
-					trace("Warning: The parameter " + param + " does not exist on " + this);
+					trace("Warning: The parameter '" + param + "' does not exist in " + this);
 				}
 			}
 		}
@@ -27,5 +30,16 @@ package cc.hayama.purity.vo {
 		//--------------------------------------
 
 		public var name:String;
+
+		//--------------------------------------
+		//   Function 
+		//--------------------------------------
+
+		public function clone():* {
+			var str:String = JSON.stringify(this);
+			var c:Class = getDefinitionByName(getQualifiedClassName(this)) as Class;
+			var vo:ValueObject = new c(JSON.parse(str));
+			return vo;
+		}
 	}
 }

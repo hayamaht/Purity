@@ -34,6 +34,9 @@ package cc.hayama.purity.parsers {
 		}
 
 		public function validateName(name:String):Boolean {
+			if(!name || name.length == 0) {
+				return false;
+			}
 			return name.search(/^_\w+_$/) < 0 && name.charAt(0) != "~";
 		}
 	}

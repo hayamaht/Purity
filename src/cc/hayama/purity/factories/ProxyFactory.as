@@ -19,6 +19,8 @@ package cc.hayama.purity.factories {
 			} catch (err:Error) {
 				proxyClass = ModelProxy;
 			}
+			
+			proxy = new proxyClass(config.name);
 
 			try {
 				proxy.voClass = getDefinitionByName(config.voClassName) as Class;

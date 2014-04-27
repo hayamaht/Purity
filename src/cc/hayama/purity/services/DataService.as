@@ -53,13 +53,13 @@ package cc.hayama.purity.services {
 
 		public function load():void {
 			if (!rawData) {
-				LoadManager.load(filename, { onComplete: onCompleted });
+				LoadManager.load(filename, { onComplete: onLoadCompleted });
 			} else {
-				onCompleted();
+				onLoadCompleted();
 			}
 		}
 
-		private function onCompleted(event:LoaderEvent = null):void {
+		private function onLoadCompleted(event:LoaderEvent = null):void {
 			if (!rawData) {
 				init();
 			}

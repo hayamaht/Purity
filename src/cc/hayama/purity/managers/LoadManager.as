@@ -31,6 +31,10 @@ package cc.hayama.purity.managers {
 		//--------------------------------------
 		//   Static Function 
 		//--------------------------------------
+		
+		public static function clear():void {
+			instance.clear();
+		}
 
 		public static function getContent(name:String):* {
 			return LoaderMax.getContent(name);

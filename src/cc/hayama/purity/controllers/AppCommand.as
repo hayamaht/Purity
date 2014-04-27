@@ -47,7 +47,9 @@ package cc.hayama.purity.controllers {
 
 				if (route.gotoMediator) {
 					m = facade.retrieveMediator(route.gotoMediator) as ViewMediator;
-					m.data = route.params;
+					if(route.params) {
+						m.data = route.params;
+					}
 					m.show();
 				}
 
@@ -84,11 +86,6 @@ package cc.hayama.purity.controllers {
 					p = facade.retrieveProxy(route.proxyName) as ModelProxy;
 					p.call(route.proxyMethodName, route.params);
 				}
-
-				if (route.proxyName && route.proxyMethodName) {
-					p = facade.retrieveProxy(route.proxyName) as ModelProxy;
-					p.call(route.proxyMethodName, route.params);
-				}
 			}
 		}
 
@@ -104,19 +101,19 @@ package cc.hayama.purity.controllers {
 
 //			var c:IUIComponent = m.getComponent(route.componentName);
 
-			for (var p:String in params) {
-				var v:String = String(params[p]);
-				var match1:Array = v.match(/{data.([^}]+)}/);
-				var match2:Array = v.match(/{([^}]+)}/);
-
-				if (p == "data" && v == "{data}") {
-					//					params[p] = c.parent.data;
-				} else if (match1 && match1.length > 1) {
-					//					params[p] = c.parent.data[match1[1]];
-				} else if (match2 && match2.length > 1) {
-					params[p] = m.getComponent(match2[1]).getValue();
-				}
-			}
+//			for (var p:String in params) {
+//				var v:String = String(params[p]);
+//				var match1:Array = v.match(/{data.([^}]+)}/);
+//				var match2:Array = v.match(/{([^}]+)}/);
+//
+//				if (p == "data" && v == "{data}") {
+//					//					params[p] = c.parent.data;
+//				} else if (match1 && match1.length > 1) {
+//					//					params[p] = c.parent.data[match1[1]];
+//				} else if (match2 && match2.length > 1) {
+//					params[p] = m.getComponent(match2[1]).getValue();
+//				}
+//			}
 
 			return params;
 		}
